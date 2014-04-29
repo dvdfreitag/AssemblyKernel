@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ "$1" == "--assemble" ]; then
+	nasm -felf kernel.asm -o kernel.o
+elif [ "$1" == "--display" ]; then
+	qemu-system-i386 -cdrom kernel.iso
+elif [ "$1" == "--gcc" ]; then
+	i586-elf-gcc -T linker.ld -o kernel.bin -ffreestanding -O2 -nostdlib kernel.o -lgcc
+else
+	nasm -felf kernel.asm -o kernel.o
+	i586-elf-gcc -T linker.ld -o kernel.bin -ffreestanding -O2 -nostdlib kernel.o -lgcc
+	mv kernel.bin iso/boot/kernel.bin
+	grub-mkrescue -o kernel.iso iso
+	qemu-system-i386 -cdrom kernel.iso
+fi
+
