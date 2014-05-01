@@ -1,7 +1,10 @@
 #!/bin/bash
 
 if [ "$1" == "--assemble" ]; then
-	nasm -felf kernel.asm -o kernel.o
+	#nasm -felf kernel.asm -o kernel.o
+	i586-elf-as kernel.s -o kernel.o
+elif [ "$1" == "--compile" ]; then
+	i586-elf-gcc -S -masm=intel -c test.c -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 elif [ "$1" == "--display" ]; then
 	qemu-system-i386 -cdrom kernel.iso
 elif [ "$1" == "--gcc" ]; then
