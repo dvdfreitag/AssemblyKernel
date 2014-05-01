@@ -64,7 +64,7 @@ TERMINAL_LIGHT_CYAN 	= 0x0B
 TERMINAL_LIGHT_RED 		= 0x0C
 TERMINAL_LIGHT_MAGENTA 	= 0x0D
 TERMINAL_LIGHT_BROWN 	= 0x0E
-TERMINAL_LIGHT_WHITE 	= 0x0F
+TERMINAL__WHITE 		= 0x0F
 
 // Clobbers: edx
 // byte TerminalColor(byte foreground, byte background)
@@ -108,7 +108,7 @@ MakeVGAEntry:
 	ret
 	.cfi_endproc
 	
-// Clobers:
+// Clobers: ecx, edx
 // byte strlen(const char* string)
 // Returns: Length of string
 	.align 16
@@ -119,18 +119,52 @@ strlen:
 	push ebp
 	mov ebp, esp
 	
-	mov ecx, dword ptr [ebp+4]		// string pointer
-	xor eax, eax					// emty array offset
-	cmp byte ptr [ecx], 0			// null check
+	mov ecx, dword ptr [ebp+4]			// string pointer
+	xor eax, eax						// emty array offset
+	cmp byte ptr [ecx], 0				// null check
 	je .L2
 .L1:
-	inc eax							// increment array offset
-	xor edx, edx					// clear temporary array offset
-	mov dl, al						// move array offset into temporary
-	cmp byte ptr [ecx+edx], 0		// check for end of string
+	inc eax								// increment array offset
+	xor edx, edx						// clear temporary array offset
+	mov dl, al							// move array offset into temporary
+	cmp byte ptr [ecx+edx], 0			// check for end of string
 	jne .L1
 .L2:
 	mov esp, ebp
 	pop ebp
 	ret	
 	.cfi_endproc
+	
+// Clobbers:
+// void InitTerminal()
+// Returns: nothing
+	.align 16
+	.globl InitTerminal
+	.type InitTerminal, @function
+InitTerminal:
+	.cfi_startproc
+	push ebp
+	mov ebp, esp
+	
+	mov word ptr TerminalPosition, 0
+	push TERMINAL_WHITE					// background
+	push TERMINAL_RED					// foreground
+	call TerminalMakeColor
+	mov word ptr TerminalColor, eax
+	
+	xor ecx, ecx
+	xor edx, edx
+	.align 16
+.L3:
+	xor eax, eax
+	.align 16
+.L4:
+	lea edx, [ecx+eax]
+	inc eax
+	and edx, 255
+	
+	
+	mov esp, ebp
+	pop ebp
+	ret	
+	.cfi_endproc	
