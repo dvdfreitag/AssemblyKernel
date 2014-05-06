@@ -1,170 +1,317 @@
+	.file	"kernel.cpp"
 	.intel_syntax noprefix
-
-// Declare constants for creating a multiboot compliant header
-MBALIGN		= 1 << 0				// Align loaded modules on page boundaries
-MEMINFO		= 1 << 1				// Provide memory map
-FLAGS		= MBALIGN | MEMINFO		// Multiboot 'flag' field
-MAGIC		= 0x1BADB002			// Multiboot 'magic' number
-CHECKSUM	= -(MAGIC + FLAGS)		// Checksum for multiboot compliance
-
-// Declare a header as in the Multiboot Standard. This gets put into
-// its own section so we can force the header to be in the start of
-// the final program in the link process. The Multiboot compliant 
-// bootloader (GRUB) will search for these values.
-.section .multiboot	// Define special multiboot section
-.align 4			// Enforce the alignment of this section to 4 bytes
-	.int MAGIC	// Initialize magic number using 'MAGIC' symbolic constant
-	.int FLAGS	// Initialize flags using 'FLAGS' symbolic constant
-	.int CHECKSUM	// Initialize checksum using 'CHECKSUM' symbolic constant
-	
-// Currently the stack pointer register (esp) points at something that is
-// unknown. Using it at this point could cause massive harm. To start we
-// are going to create a symbol just before we initialize our new stack,
-// this symbol will contain the address of the base of the stack. Next,
-// we will allocate our stack, then finally we will create another symbol
-// at the end of the stack that will point to the last memory location
-// on the stack.
-	.section .bootstrap_stack	// Define a new section for our stack
-	.align 4					// Enforce the alignment of this section to 4 bytes
-	.globl stack_bottom
-	.type stack_bottom, @object	
-stack_bottom:					// Define a symbol at the beginning of the stack
-	.rept						// Initialize 16KB of memory to 0
-	.byte 0
-	.endr
-stack_top:						// Define a symbol at the top of the stack
-
 	.text
 	.align 16
-	.globl Terminal
-	.type Terminal, @object
-Terminal: .int 0xB8000
-
-	.globl TerminalColor
-	.type TerminalColor, @object
-TerminalColor: .word 0
-
-	.globl TerminalPosition
-	.type TerminalPosition, @object
-TerminalPosition: .word 0	
-
-// Terminal color symbolic constants
-TERMINAL_BLACK 			= 0x00
-TERMINAL_BLUE  			= 0x01
-TERMINAL_GREEN 			= 0x02
-TERMINAL_CYAN 			= 0x03
-TERMINAL_RED 			= 0x04
-TERMINAL_MAGENTA 		= 0x05
-TERMINAL_BROWN 			= 0x06
-TERMINAL_LIGHT_GREY 	= 0x07
-TERMINAL_DARK_GREY 		= 0x08
-TERMINAL_LIGHT_BLUE 	= 0x09
-TERMINAL_LIGHT_GREEN 	= 0x0A
-TERMINAL_LIGHT_CYAN 	= 0x0B
-TERMINAL_LIGHT_RED 		= 0x0C
-TERMINAL_LIGHT_MAGENTA 	= 0x0D
-TERMINAL_LIGHT_BROWN 	= 0x0E
-TERMINAL__WHITE 		= 0x0F
-
-// Clobbers: edx
-// byte TerminalColor(byte foreground, byte background)
-// Returns: Terminal Color in al
-	.align 16
-	.globl TerminalMakeColor
-	.type  TerminalMakeColor, @function
-TerminalMakeColor:
+	.globl	_Z10make_color9vga_colorS_
+	.type	_Z10make_color9vga_colorS_, @function
+_Z10make_color9vga_colorS_:
+.LFB0:
 	.cfi_startproc
-	push ebp
-	mov ebp, esp
-	
-	mov al, byte ptr [ebp+8]		// background
-	mov edx, dword ptr [ebp+4]		// foreground
-	sal eax, 4
-	or eax, edx
-	
-	mov esp, ebp
-	pop ebp
+	mov	eax, DWORD PTR [esp+8]
+	mov	edx, DWORD PTR [esp+4]
+	sal	eax, 4
+	or	eax, edx
 	ret
 	.cfi_endproc
-
-// Clobbers: edx
-// word MakeVGAEntry(char letter, byte color)
-// Returns: VGA entry in ax
+.LFE0:
+	.size	_Z10make_color9vga_colorS_, .-_Z10make_color9vga_colorS_
 	.align 16
-	.globl MakeVGAEntry
-	.type MakeVGAEntry, @function
-MakeVGAEntry:
+	.globl	_Z13make_vgaentrych
+	.type	_Z13make_vgaentrych, @function
+_Z13make_vgaentrych:
+.LFB1:
 	.cfi_startproc
-	push ebp
-	mov ebp, esp
-	
-	mov al, byte ptr [ebp+8]			// color
-	movsx edx, byte ptr [ebp+4]		// letter
-	sal eax, 8						// color << 8
-	or eax, edx						// color | letter
-	
-	mov esp, ebp
-	pop ebp
+	xor	edx, edx
+	mov	dl, BYTE PTR [esp+8]
+	movsx	ax, BYTE PTR [esp+4]
+	sal	edx, 8
+	or	eax, edx
 	ret
 	.cfi_endproc
-	
-// Clobers: ecx, edx
-// byte strlen(const char* string)
-// Returns: Length of string
+.LFE1:
+	.size	_Z13make_vgaentrych, .-_Z13make_vgaentrych
 	.align 16
-	.globl strlen
-	.type strlen, @function
-strlen:
+	.globl	_Z6strlenPKc
+	.type	_Z6strlenPKc, @function
+_Z6strlenPKc:
+.LFB2:
 	.cfi_startproc
-	push ebp
-	mov ebp, esp
-	
-	mov ecx, dword ptr [ebp+4]			// string pointer
-	xor eax, eax						// emty array offset
-	cmp byte ptr [ecx], 0				// null check
-	je .L2
-.L1:
-	inc eax								// increment array offset
-	xor edx, edx						// clear temporary array offset
-	mov dl, al							// move array offset into temporary
-	cmp byte ptr [ecx+edx], 0			// check for end of string
-	jne .L1
-.L2:
-	mov esp, ebp
-	pop ebp
-	ret	
+	mov	ecx, DWORD PTR [esp+4]
+	xor	eax, eax
+	cmp	BYTE PTR [ecx], 0
+	je	.L6
+	.align 16
+.L5:
+	inc	eax
+	xor	edx, edx
+	mov	dl, al
+	cmp	BYTE PTR [ecx+edx], 0
+	jne	.L5
+	ret
+.L6:
+	ret
 	.cfi_endproc
-	
-// Clobbers:
-// void InitTerminal()
-// Returns: nothing
+.LFE2:
+	.size	_Z6strlenPKc, .-_Z6strlenPKc
 	.align 16
-	.globl InitTerminal
-	.type InitTerminal, @function
-InitTerminal:
+	.globl	_Z19terminal_initializev
+	.type	_Z19terminal_initializev, @function
+_Z19terminal_initializev:
+.LFB3:
 	.cfi_startproc
-	push ebp
-	mov ebp, esp
-	
-	mov word ptr TerminalPosition, 0
-	push TERMINAL_WHITE					// background
-	push TERMINAL_RED					// foreground
-	call TerminalMakeColor
-	mov word ptr TerminalColor, eax
-	
-	xor ecx, ecx
-	xor edx, edx
+	push	ebx
+	.cfi_def_cfa_offset 8
+	.cfi_offset 3, -8
+	mov	BYTE PTR terminal_row, 0
+	mov	BYTE PTR terminal_column, 0
+	mov	BYTE PTR terminal_color, 7
+	mov	DWORD PTR terminal_buffer, 753664
+	xor	ecx, ecx
+	xor	ebx, ebx
 	.align 16
-.L3:
-	xor eax, eax
+.L9:
+	xor	eax, eax
 	.align 16
-.L4:
-	lea edx, [ecx+eax]
-	inc eax
-	and edx, 255
-	
-	
-	mov esp, ebp
-	pop ebp
-	ret	
-	.cfi_endproc	
+.L12:
+	lea	edx, [ecx+eax]
+	inc	eax
+	and	edx, 255
+	cmp	al, 80
+	mov	WORD PTR [edx+753664+edx], 1824
+	jne	.L12
+	inc	ebx
+	add	ecx, 80
+	cmp	bl, 24
+	jne	.L9
+	pop	ebx
+	.cfi_restore 3
+	.cfi_def_cfa_offset 4
+	ret
+	.cfi_endproc
+.LFE3:
+	.size	_Z19terminal_initializev, .-_Z19terminal_initializev
+	.align 16
+	.globl	_Z17terminal_setcolorh
+	.type	_Z17terminal_setcolorh, @function
+_Z17terminal_setcolorh:
+.LFB4:
+	.cfi_startproc
+	mov	eax, DWORD PTR [esp+4]
+	mov	BYTE PTR terminal_color, al
+	ret
+	.cfi_endproc
+.LFE4:
+	.size	_Z17terminal_setcolorh, .-_Z17terminal_setcolorh
+	.align 16
+	.globl	_Z19terminal_putentryatchhh
+	.type	_Z19terminal_putentryatchhh, @function
+_Z19terminal_putentryatchhh:
+.LFB5:
+	.cfi_startproc
+	mov	eax, DWORD PTR [esp+16]
+	mov	ecx, DWORD PTR [esp+12]
+	movsx	dx, BYTE PTR [esp+4]
+	lea	eax, [eax+eax*4]
+	sal	eax, 4
+	add	eax, ecx
+	xor	ecx, ecx
+	mov	cl, BYTE PTR [esp+8]
+	and	eax, 255
+	sal	ecx, 8
+	or	edx, ecx
+	mov	ecx, DWORD PTR terminal_buffer
+	mov	WORD PTR [ecx+eax*2], dx
+	ret
+	.cfi_endproc
+.LFE5:
+	.size	_Z19terminal_putentryatchhh, .-_Z19terminal_putentryatchhh
+	.align 16
+	.globl	_Z16terminal_putcharc
+	.type	_Z16terminal_putcharc, @function
+_Z16terminal_putcharc:
+.LFB6:
+	.cfi_startproc
+	mov	cl, BYTE PTR terminal_row
+	push	esi
+	.cfi_def_cfa_offset 8
+	.cfi_offset 6, -8
+	push	ebx
+	.cfi_def_cfa_offset 12
+	.cfi_offset 3, -12
+	mov	bl, BYTE PTR terminal_column
+	lea	eax, [ecx+ecx*4]
+	xor	edx, edx
+	sal	eax, 4
+	mov	dl, BYTE PTR terminal_color
+	sal	edx, 8
+	add	eax, ebx
+	mov	esi, eax
+	movsx	ax, BYTE PTR [esp+12]
+	and	esi, 255
+	or	eax, edx
+	mov	edx, DWORD PTR terminal_buffer
+	mov	WORD PTR [edx+esi*2], ax
+	lea	eax, [ebx+1]
+	mov	BYTE PTR terminal_column, al
+	cmp	al, 80
+	je	.L21
+.L16:
+	pop	ebx
+	.cfi_remember_state
+	.cfi_restore 3
+	.cfi_def_cfa_offset 8
+	pop	esi
+	.cfi_restore 6
+	.cfi_def_cfa_offset 4
+	ret
+	.align 16
+.L21:
+	.cfi_restore_state
+	inc	ecx
+	mov	BYTE PTR terminal_column, 0
+	mov	BYTE PTR terminal_row, cl
+	cmp	cl, 24
+	jne	.L16
+	pop	ebx
+	.cfi_restore 3
+	.cfi_def_cfa_offset 8
+	mov	BYTE PTR terminal_row, 0
+	pop	esi
+	.cfi_restore 6
+	.cfi_def_cfa_offset 4
+	ret
+	.cfi_endproc
+.LFE6:
+	.size	_Z16terminal_putcharc, .-_Z16terminal_putcharc
+	.align 16
+	.globl	_Z20terminal_writestringPKc
+	.type	_Z20terminal_writestringPKc, @function
+_Z20terminal_writestringPKc:
+.LFB7:
+	.cfi_startproc
+	push	esi
+	.cfi_def_cfa_offset 8
+	.cfi_offset 6, -8
+	push	ebx
+	.cfi_def_cfa_offset 12
+	.cfi_offset 3, -12
+	push	esi
+	.cfi_def_cfa_offset 16
+	xor	eax, eax
+	mov	ebx, DWORD PTR [esp+16]
+	cmp	BYTE PTR [ebx], 0
+	je	.L22
+	.align 16
+.L30:
+	inc	eax
+	xor	edx, edx
+	mov	dl, al
+	cmp	BYTE PTR [ebx+edx], 0
+	jne	.L30
+	test	al, al
+	je	.L22
+	dec	eax
+	and	eax, 255
+	lea	esi, [ebx+1+eax]
+	.align 16
+.L27:
+	movsx	eax, BYTE PTR [ebx]
+	inc	ebx
+	mov	DWORD PTR [esp], eax
+	call	_Z16terminal_putcharc
+	cmp	ebx, esi
+	jne	.L27
+.L22:
+	pop	ebx
+	.cfi_def_cfa_offset 12
+	pop	ebx
+	.cfi_restore 3
+	.cfi_def_cfa_offset 8
+	pop	esi
+	.cfi_restore 6
+	.cfi_def_cfa_offset 4
+	ret
+	.cfi_endproc
+.LFE7:
+	.size	_Z20terminal_writestringPKc, .-_Z20terminal_writestringPKc
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.LC0:
+	.string	"Hello, kernel World!\n"
+	.text
+	.align 16
+	.globl	kernel_main
+	.type	kernel_main, @function
+kernel_main:
+.LFB8:
+	.cfi_startproc
+	push	edi
+	.cfi_def_cfa_offset 8
+	.cfi_offset 7, -8
+	push	esi
+	.cfi_def_cfa_offset 12
+	.cfi_offset 6, -12
+	sub	esp, 36
+	.cfi_def_cfa_offset 48
+	mov	esi, OFFSET FLAT:.LC0
+	call	_Z19terminal_initializev
+	mov	edx, 22
+	lea	eax, [esp+14]
+	mov	edi, eax
+	test	al, 2
+	jne	.L47
+.L34:
+	mov	ecx, edx
+	shr	ecx, 2
+	and	edx, 2
+	rep movsd
+	je	.L36
+	mov	dx, WORD PTR [esi]
+	mov	WORD PTR [edi], dx
+.L36:
+	mov	DWORD PTR [esp], eax
+	call	_Z20terminal_writestringPKc
+	add	esp, 36
+	.cfi_remember_state
+	.cfi_def_cfa_offset 12
+	pop	esi
+	.cfi_restore 6
+	.cfi_def_cfa_offset 8
+	pop	edi
+	.cfi_restore 7
+	.cfi_def_cfa_offset 4
+	ret
+	.align 16
+.L47:
+	.cfi_restore_state
+	mov	dx, WORD PTR .LC0
+	lea	edi, [esp+16]
+	mov	WORD PTR [esp+14], dx
+	mov	esi, OFFSET FLAT:.LC0+2
+	mov	edx, 20
+	jmp	.L34
+	.cfi_endproc
+.LFE8:
+	.size	kernel_main, .-kernel_main
+	.globl	terminal_buffer
+	.section	.bss
+	.align 4
+	.type	terminal_buffer, @object
+	.size	terminal_buffer, 4
+terminal_buffer:
+	.zero	4
+	.globl	terminal_color
+	.type	terminal_color, @object
+	.size	terminal_color, 1
+terminal_color:
+	.zero	1
+	.globl	terminal_column
+	.type	terminal_column, @object
+	.size	terminal_column, 1
+terminal_column:
+	.zero	1
+	.globl	terminal_row
+	.type	terminal_row, @object
+	.size	terminal_row, 1
+terminal_row:
+	.zero	1
+	.ident	"GCC: (GNU) 4.8.1"
